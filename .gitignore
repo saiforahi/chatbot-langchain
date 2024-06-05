@@ -1,0 +1,17 @@
+venv
+temp
+__pycache__
+.idea
+chroma
+*.sqlite3
+migrations
+.venv
+data
+media/uploads/
+.env
+embeddings/
+pdfs/
+*.log
+.winvenv
+winvenv
+.env

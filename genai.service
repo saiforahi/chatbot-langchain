@@ -1,0 +1,13 @@
+[Unit]
+Description=uWSGI instance to serve genai_backend
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/genai_flask_app
+Environment="PATH=/home/ubuntu/genai_flask_app/venv/bin"
+ExecStart=/home/ubuntu/genai_flask_app/venv/bin/uwsgi --ini uwsgi.ini --http :5000 --gevent 1000 --wsgi-file wsgi.py --callable app
+
+[Install]
+WantedBy=multi-user.target

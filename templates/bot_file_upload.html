@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot File Upload</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h1 class="text-center">Chatbot File Upload</h1>
+            </div>
+            <div class="card-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="files">Select files:</label>
+                        <input type="file" class="form-control-file" name="files" id="files" accept=".pdf" multiple required>
+                    </div>
+                    <div class="form-group">
+                        <label for="chatbotId">Chatbot ID:</label>
+                        <input type="text" class="form-control" name="chatbotId" id="chatbotId" required>
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="uploadFiles()">Upload</button>
+                </form>
+                <div id="loadingBar" class="progress mt-3" style="display: none;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function uploadFiles() {
+            var form = document.getElementById('uploadForm');
+            var formData = new FormData(form);
+            var chatbotId = document.getElementById('chatbotId').value;
+        
+            // Validate chatbotId (add your own validation logic as needed)
+        
+            // Show loading bar
+            document.getElementById('loadingBar').style.display = 'block';
+        
+            fetch('/api/chatbots/' + chatbotId + '/upload', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Authorization': 'Bearer ' + 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTcwNTY4MDg1OCwianRpIjoiYThlM2RkZTItYmNjMC00NTMyLTllZjktN2MwNmVkOTRlNTAzIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6InNhaWZvcmFoaUBnbWFpbC5jb20iLCJuYmYiOjE3MDU2ODA4NTgsImNzcmYiOiJkODcwYThmYi0yY2JlLTQxNGItOTkyZi03NmQ5ZWZjN2Y4NjYiLCJleHAiOjE3MDgyNzI4NTh9.gVHYDansyEe0UJ56_wEIXsjrPOoqV9xBJ-FlPdfjRiI'  // Replace with your JWT token
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Full Response Data:', data);
+        
+                // Check for the existence of file_locations in data.data
+                if (1===1) {
+                    // Prompt the user for additional information
+                    var toolName = prompt('Enter tool name:');
+                    var toolDescription = prompt('Enter tool description:');
+
+                    // Check if the user provided values
+                    if (toolName && toolDescription) {
+                        embedDocument(chatbotId, data.data, toolName, toolDescription);
+                    } else {
+                        console.error('User canceled or did not provide tool information.');
+                        alert('File upload failed!');
+                    }
+                } else {
+                    console.error('File upload failed:', data);
+                    alert('File upload failed!');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Upload Failed!');
+            })
+            .finally(() => {
+                // Hide loading bar
+                document.getElementById('loadingBar').style.display = 'none';
+            });
+        }
+        
+        function embedDocument(chatbotId, fileLocations, toolName, toolDescription) {
+            console.log('Embedding Document:', chatbotId, fileLocations, toolName, toolDescription);
+            
+            fetch('/api/chatbots/' + chatbotId + '/embed', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJmcmVzaCI6ZmFsc2UsImlhdCI6MTcwNTY4MDg1OCwianRpIjoiYThlM2RkZTItYmNjMC00NTMyLTllZjktN2MwNmVkOTRlNTAzIiwidHlwZSI6ImFjY2VzcyIsInN1YiI6InNhaWZvcmFoaUBnbWFpbC5jb20iLCJuYmYiOjE3MDU2ODA4NTgsImNzcmYiOiJkODcwYThmYi0yY2JlLTQxNGItOTkyZi03NmQ5ZWZjN2Y4NjYiLCJleHAiOjE3MDgyNzI4NTh9.gVHYDansyEe0UJ56_wEIXsjrPOoqV9xBJ-FlPdfjRiI'  // Replace with your JWT token
+                },
+                body: JSON.stringify({
+                    file_locations: fileLocations,
+                    tool_name: toolName,
+                    tool_description: toolDescription
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Data sent successfully!');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to send data!');
+            });
+        }
+    </script>
+</body>
+</html>

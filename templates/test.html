@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+   <head>
+       <title>Live Transcription</title>
+   </head>
+   <body>
+       <h1>Transcribe Audio With Flask 2.0</h1>
+       <p id="status">Connection status will go here</p>
+       <p id="transcript"></p>
+
+       <button id="startButton">Start Recording</button>
+
+       <script>
+           const socket = new WebSocket('ws://localhost:5555/listen');
+
+           // Your existing WebSocket event listeners here...
+
+           document.getElementById('startButton').addEventListener('click', () => {
+               navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+                   if (!MediaRecorder.isTypeSupported('audio/webm')) return alert('Browser not supported')
+                   const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
+
+                   mediaRecorder.addEventListener('dataavailable', async (event) => {
+                       if (event.data.size > 0 && socket.readyState == 1) {
+                           socket.send(event.data)
+                       }
+                   })
+
+                   mediaRecorder.start(250)
+               })
+           });
+       </script>
+   </body>
+</html>

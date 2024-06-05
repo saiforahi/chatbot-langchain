@@ -1,0 +1,128 @@
+{% comment %} <!DOCTYPE html>
+<html>
+<head>
+    <title>Live Transcription</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+</head>
+<body>
+    <h1>Transcribe Audio With Flask</h1>
+    <button id="start">Start Recording</button>
+    <button id="stop" disabled>Stop Recording</button>
+    <p>Transcription: <span id="transcription"></span></p>
+
+    <script>
+        let socket = io.connect('http://' + document.domain + ':' + location.port);
+        let mediaRecorder;
+        let audioChunks = [];
+
+        document.getElementById('start').onclick = function() {
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = event => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+                mediaRecorder.start();
+
+                document.getElementById('stop').disabled = false;
+                this.disabled = true;
+            });
+        };
+
+        document.getElementById('stop').onclick = function() {
+            mediaRecorder.stop();
+            this.disabled = true;
+            document.getElementById('start').disabled = false;
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type : 'audio/wav' });
+                const arrayBuffer = await audioBlob.arrayBuffer();
+                socket.emit('connect', arrayBuffer);
+                audioChunks = [];
+            };
+        };
+
+        socket.on('transcription_result', function(transcript) {
+            document.getElementById('transcription').innerText = transcript;
+        });
+    </script>
+</body>
+</html> {% endcomment %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Transcription</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@deepgram/sdk"></script>
+</head>
+<body>
+    <h1>Transcribe Audio With Deepgram</h1>
+    <button id="record">Toggle Recording</button>
+    <span id="status" class="text-lg"></span>
+    <div id="captions" class="mt-4 p-4 bg-gray-100 rounded"></div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let socket = io.connect('http://' + document.domain + ':' + location.port);
+            let mediaRecorder;
+            let audioChunks = [];
+            let captions = '';
+            let status = '';
+
+            document.getElementById('record').onclick = function () {
+                if (mediaRecorder && mediaRecorder.state === "recording") {
+                    mediaRecorder.stop();
+                    status = '';
+                } else {
+                    startRecording();
+                    status = 'Listening...';
+                }
+            };
+
+            function startRecording() {
+                navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                    const deepgram = createClient("YOUR_DEEPGRAM_API_KEY");
+
+                    const dgConnection = deepgram.listen.live({
+                        model: "nova",
+                        smart_format: true,
+                        language: "en-us"
+                    });
+
+                    dgConnection.on(LiveTranscriptionEvents.Open, () => {
+                        dgConnection.on(LiveTranscriptionEvents.Transcript, (data) => {
+                            captions += data.channel.alternatives[0].transcript + ' ';
+                            document.getElementById('captions').innerText = captions;
+                        });
+
+                        mediaRecorder = new MediaRecorder(stream);
+                        mediaRecorder.ondataavailable = event => {
+                            if (event.data.size > 0) {
+                                dgConnection.send(event.data);
+                            }
+                        };
+
+                        mediaRecorder.onstop = async () => {
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                            const arrayBuffer = await audioBlob.arrayBuffer();
+                            socket.emit('connect', arrayBuffer);
+                            audioChunks = [];
+                        };
+
+                        mediaRecorder.start(1000);
+                        document.getElementById('record').disabled = true;
+                        document.getElementById('status').innerText = status;
+                    });
+                });
+            }
+
+            socket.on('transcription_result', function (transcript) {
+                document.getElementById('transcription').innerText = transcript;
+            });
+        });
+    </script>
+</body>
+</html>

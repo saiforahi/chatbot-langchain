@@ -1,0 +1,16 @@
+stages:
+  - deploy
+    
+deploy:
+  stage: deploy
+  before_script:
+    - mkdir -p ~/.ssh
+    - echo "$SERVER_HOST_KEY" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - apt-get -y update
+    - apt-get -y upgrade
+    - apt-get install sshpass
+    - sshpass -p "$SSH_PASSWORD" ssh -o StrictHostKeyChecking=no ubuntu@core.shadhin.ai "cd /home/ubuntu/genai_flask_app"
+  only:
+    - dev
